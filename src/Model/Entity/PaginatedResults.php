@@ -36,6 +36,7 @@ class PaginatedResults
     }
 
     /**
+     * @codeCoverageIgnore
      * @return int
      */
     public function getCurrentPage()
@@ -44,6 +45,7 @@ class PaginatedResults
     }
 
     /**
+     * @codeCoverageIgnore
      * @return int
      */
     public function getMaxPages()

@@ -3,6 +3,7 @@
 namespace ComradeReader\Test\Helpers;
 
 /**
+ * @codeCoverageIgnore
  * @package ComradeReader\Test\Helpers
  */
 class SimpleTestEntity

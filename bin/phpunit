@@ -1,0 +1,14 @@
+#!/bin/bash
+cd "$( dirname "${BASH_SOURCE[0]}" )"
+
+# start example API server
+php -S 0.0.0.0:8005 -t ../examples/test-api-responses &>/dev/null &
+sleep 1
+
+# run test suite
+../vendor/bin/phpunit "$@"
+exit_code=$?
+
+echo ""
+killall php &> /dev/null
+exit $exit_code

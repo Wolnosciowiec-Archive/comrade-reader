@@ -2,8 +2,11 @@
 
 namespace ComradeReader\Service;
 
+use ComradeReader\Exception\InvalidArgumentException;
+use ComradeReader\Exception\ResourceNotFoundException;
 use Doctrine\Common\Cache\CacheProvider;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\Serializer\Serializer;
 
 /**
@@ -28,8 +31,11 @@ class ComradeReader
     /** @var string $url */
     protected $url;
 
-    /** @var string $secret */
-    protected $secret;
+    /** @var string $secretToken */
+    protected $secretToken;
+
+    /** @var string $tokenFieldName */
+    protected $tokenFieldName = 'token';
 
     /** @var Serializer $serializer */
     protected $serializer;
@@ -50,7 +56,7 @@ class ComradeReader
         CacheProvider $cache)
     {
         $this->url        = $apiUrl;
-        $this->secret     = $apiKey;
+        $this->secretToken     = $apiKey;
         $this->serializer = $serializer;
         $this->cache      = $cache;
         $this->client     = new Client([
@@ -58,6 +64,24 @@ class ComradeReader
                 'Content-Type' => 'application/json'
             ],
         ]);
+    }
+
+    /**
+     * @param string $tokenFieldName
+     * @return ComradeReader
+     */
+    public function setTokenFieldName($tokenFieldName)
+    {
+        $this->tokenFieldName = $tokenFieldName;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTokenFieldName()
+    {
+        return $this->tokenFieldName;
     }
 
     /**
@@ -76,34 +100,50 @@ class ComradeReader
      * Make a request to the server
      * and return a decoded response
      *
-     * @param string        $url
-     * @param string|array  $parameters
-     * @param string        $method
-     * @param int           $cacheLifeTime
+     * @param string       $method
+     * @param string       $url
+     * @param array        $parameters
+     * @param int          $cacheLifeTime
+     *
+     * @throws InvalidArgumentException
+     * @throws ResourceNotFoundException
      *
      * @return ComradeDeserializer
      */
     public function request(
         $method,
         $url,
-        $parameters = '',
+        $parameters = [],
         $cacheLifeTime = 500
     )
     {
-        $parameters = $this->buildParameters($parameters);
+        $parameters = $this->buildParameters($url, $method, $parameters);
 
         // read from cache (if available)
         if ($cacheLifeTime >= 0 && $this->cache->fetch($this->getCacheId($method, $url, $parameters))) {
-            return $this->cache->fetch($this->getCacheId($method, $url, $parameters));
+            return new ComradeDeserializer(
+                $this->cache->fetch($this->getCacheId($method, $url, $parameters)),
+                $this->serializer
+            );
         }
 
         // send a request
-        $response = $this->client
-            ->request(
-                $method,
-                $this->getPreparedRequestUrl($url, $parameters),
-                $this->getConnectionOptions()
-            )->getBody()->getContents();
+        try {
+            $response = $this->client
+                ->request(
+                    $method,
+                    $this->getPreparedRequestUrl($url),
+                    $parameters
+                )->getBody()->getContents();
+
+        }
+        catch (ClientException $e) {
+            if ($e->getCode() === 404) {
+                throw new ResourceNotFoundException($url);
+            }
+
+            throw $e;
+        }
 
         // update cache with a new response from server
         if ($cacheLifeTime >= 0) {
@@ -118,13 +158,88 @@ class ComradeReader
     }
 
     /**
+     * Alias to request()
+     *
+     * @param string $url
+     * @param array  $parameters
+     * @param int    $cacheLifeTime
+     *
+     * @throws ResourceNotFoundException
+     * @return ComradeDeserializer
+     */
+    public function get(
+        $url,
+        $parameters = [],
+        $cacheLifeTime = 500
+    )
+    {
+        return $this->request('GET', $url, $parameters, $cacheLifeTime);
+    }
+
+    /**
+     * Alias to request(), with "POST" preselected as a HTTP method
+     *
+     * @param string $url
+     * @param array  $parameters
+     * @param int    $cacheLifeTime
+     *
+     * @throws ResourceNotFoundException
+     * @return ComradeDeserializer
+     */
+    public function post(
+        $url,
+        $parameters = [],
+        $cacheLifeTime = 500
+    )
+    {
+        return $this->request('POST', $url, $parameters, $cacheLifeTime);
+    }
+
+    /**
+     * Alias to request(), with "PUT" preselected as a HTTP method
+     *
+     * @param string $url
+     * @param array  $parameters
+     * @param int    $cacheLifeTime
+     *
+     * @throws ResourceNotFoundException
+     * @return ComradeDeserializer
+     */
+    public function put(
+        $url,
+        $parameters = [],
+        $cacheLifeTime = 500
+    )
+    {
+        return $this->request('PUT', $url, $parameters, $cacheLifeTime);
+    }
+
+    /**
+     * Alias to request(), with "DELETE" preselected as a HTTP method
+     *
+     * @param string $url
+     * @param array  $parameters
+     * @param int    $cacheLifeTime
+     *
+     * @throws ResourceNotFoundException
+     * @return ComradeDeserializer
+     */
+    public function delete(
+        $url,
+        $parameters = [],
+        $cacheLifeTime = 500
+    )
+    {
+        return $this->request('DELETE', $url, $parameters, $cacheLifeTime);
+    }
+
+    /**
      * @param string $path
-     * @param string $parameters
      * @return string
      */
-    protected function getPreparedRequestUrl($path, $parameters)
+    protected function getPreparedRequestUrl($path)
     {
-        return $this->url . $path . '?token=' . $this->secret . '&' . $parameters;
+        return $this->url . $path;
     }
 
     /**
@@ -139,15 +254,41 @@ class ComradeReader
     }
 
     /**
-     * @param string|array $parameters
+     * @param string $url
+     * @param string $method
+     * @param array  $parameters
+     *
+     * @throws \InvalidArgumentException
      * @return string
      */
-    protected function buildParameters($parameters)
+    protected function buildParameters($url, $method, $parameters)
     {
-        if (is_array($parameters)) {
-            $parameters = http_build_query($parameters);
+        if (!is_array($parameters)) {
+            throw new \InvalidArgumentException('$parameters should be of type array');
         }
 
-        return $parameters;
+        $query = [
+            $this->getTokenFieldName() => $this->secretToken
+        ];
+
+        // merge query string from the url
+        $extractedQueryFromUrl = parse_url($url, PHP_URL_QUERY);
+
+        if (strlen($extractedQueryFromUrl) > 0) {
+            parse_str($extractedQueryFromUrl, $queryArray);
+
+            $query = array_merge($query, $queryArray);
+        }
+
+        if ('POST' === $method) {
+            return array_merge($this->getConnectionOptions(), [
+                'query'       => $query,
+                'form_params' => $parameters,
+            ]);
+        }
+
+        return array_merge($this->getConnectionOptions(), [
+            'query' => array_merge($query, $parameters),
+        ]);
     }
 }
