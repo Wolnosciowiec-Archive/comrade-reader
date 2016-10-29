@@ -4,7 +4,6 @@ namespace ComradeReader\Service;
 
 use Doctrine\Common\Cache\CacheProvider;
 use GuzzleHttp\Client;
-use Silex\Application;
 use Symfony\Component\Serializer\Serializer;
 
 /**
