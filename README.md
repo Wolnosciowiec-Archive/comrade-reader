@@ -53,10 +53,6 @@ class Color
 // ColorRepository.php
 class ColorRepository extends AbstractApiRepository
 {
-    /**
-     * @param string $eventUrlName
-     * @return \Entity\Events\Event
-     */
     public function getColorByName($colorName)
     {
         return $this->reader->request('GET', '/colors/by-name/' . $this->escape($colorName), '', 3600)
