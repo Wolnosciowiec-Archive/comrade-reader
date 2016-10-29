@@ -38,8 +38,10 @@ Given we have an API method "/colors/by-name/{{ colorName }}" on external server
 
 ```php
 <?php
-// Color.php
 
+namespace Example;
+
+// Color.php
 class Color
 {
     protected $id;
@@ -63,7 +65,6 @@ class ColorRepository extends AbstractApiRepository
 }
 
 // ExampleController.php
-
 class ExampleController extends AbstractController
 {
     public function viewAction()
