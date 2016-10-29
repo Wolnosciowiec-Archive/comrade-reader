@@ -14,3 +14,10 @@ Comrade Reader
   articles and news.
 
   http://wolnosciowiec.net
+  
+## Instalation
+
+```
+composer require wolnosciowiec/comrade-reader
+composer dump-autoload -o
+```
