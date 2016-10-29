@@ -6,7 +6,8 @@
 
     "require": {
         "php": ">=5.6.0",
-        "symfony/serializer": "^3.1"
+        "symfony/serializer": "^3.1",
+        "guzzlehttp/guzzle": "~6.0"
     },
 
     "require-dev": {
