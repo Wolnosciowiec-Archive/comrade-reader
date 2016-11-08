@@ -2,6 +2,7 @@
 
 namespace ComradeReader\Service;
 
+use ComradeReader\Exception\Deserializer\DeserializerException;
 use ComradeReader\Model\Entity\PaginatedResults;
 use Symfony\Component\Serializer\Serializer;
 
@@ -40,11 +41,29 @@ class ComradeDeserializer
     }
 
     /**
+     * @throws DeserializerException
      * @return array
      */
-    public function decodeIntoArray()
+    public function getResponse()
     {
-        $decoded = json_decode($this->getPlainResponse(), true);
+        $response = json_decode($this->getPlainResponse(), true);
+
+        if (!is_array($response)) {
+            throw new DeserializerException(
+                'Response is not a valid json, decode error: ' . json_last_error_msg(),
+                $this->getPlainResponse()
+            );
+        }
+
+        return $response;
+    }
+
+    /**
+     * @return array
+     */
+    public function getData()
+    {
+        $decoded = $this->getResponse();
 
         if (isset($decoded['success'])
             && $decoded['success']
@@ -64,7 +83,7 @@ class ComradeDeserializer
     public function decode($targetEntity)
     {
         $response = $this->_convertNaming(
-            $this->decodeIntoArray()
+            $this->getData()
         );
         return $this->serializer->deserialize(json_encode($response), $targetEntity, 'json');
     }
@@ -77,7 +96,7 @@ class ComradeDeserializer
      */
     public function decodeMultiple($targetEntity)
     {
-        $responseDecoded = $this->decodeIntoArray();
+        $responseDecoded = $this->getData();
 
         // paginator
         $responseObjects = isset($responseDecoded['results']) ? $responseDecoded['results'] : $responseDecoded;

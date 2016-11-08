@@ -29,6 +29,16 @@ class ComradeDeserializerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @throws \ComradeReader\Exception\Deserializer\DeserializerException
+     * @expectedException \ComradeReader\Exception\Deserializer\DeserializerException
+     */
+    public function testInvalidResponse()
+    {
+        $comrade = $this->constructComrade(false);
+        $comrade->getResponse();
+    }
+
+    /**
      * @see ComradeDeserializer::decode()
      */
     public function testDecode()
@@ -74,7 +84,7 @@ class ComradeDeserializerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @see ComradeDeserializer::decodeIntoArray()
+     * @see ComradeDeserializer::getData()
      */
     public function testDecodeIntoArray()
     {
@@ -87,7 +97,7 @@ class ComradeDeserializerTest extends \PHPUnit_Framework_TestCase
         ]);
 
         /** @var array $decoded */
-        $decoded = $comrade->decodeIntoArray();
+        $decoded = $comrade->getData();
 
         $this->assertInternalType('array', $decoded);
         $this->assertSame('Black & Red', $decoded['colorName']);

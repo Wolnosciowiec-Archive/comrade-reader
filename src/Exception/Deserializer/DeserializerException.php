@@ -20,7 +20,7 @@ class DeserializerException extends ReaderException
      * @param string $response
      * @param \Exception $previous
      */
-    public function __construct($message, $response, \Exception $previous)
+    public function __construct($message, $response, \Exception $previous = null)
     {
         $this->response = $response;
         parent::__construct($message, 0, $previous);

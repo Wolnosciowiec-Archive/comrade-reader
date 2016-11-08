@@ -49,7 +49,7 @@ class ComradeReaderTest extends \PHPUnit_Framework_TestCase
 
         $response = $reader->post(
             '/post-parameters.php?this_is_a_get_parameter=true', ['integer' => 1], 500
-        )->decodeIntoArray();
+        )->getData();
 
         $this->assertSame('true', $response['GET']['this_is_a_get_parameter']);
         $this->assertSame('test', $response['GET']['custom_token_field_name']);
