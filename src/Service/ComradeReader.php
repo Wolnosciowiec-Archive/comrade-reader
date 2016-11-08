@@ -6,6 +6,7 @@ use ComradeReader\Exception\InvalidArgumentException;
 use ComradeReader\Exception\ResourceNotFoundException;
 use Doctrine\Common\Cache\CacheProvider;
 use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\Serializer\Serializer;
 
@@ -25,7 +26,7 @@ use Symfony\Component\Serializer\Serializer;
  */
 class ComradeReader
 {
-    /** @var Client $client */
+    /** @var ClientInterface $client */
     protected $client;
 
     /** @var string $url */
@@ -59,11 +60,22 @@ class ComradeReader
         $this->secretToken     = $apiKey;
         $this->serializer = $serializer;
         $this->cache      = $cache;
-        $this->client     = new Client([
-            'headers' => [
-                'Content-Type' => 'application/json'
-            ],
-        ]);
+    }
+
+    /**
+     * @return ClientInterface
+     */
+    protected function getClient()
+    {
+        if (!$this->client instanceof ClientInterface) {
+            $this->client     = new Client([
+                'headers' => [
+                    'Content-Type' => 'application/json'
+                ],
+            ]);
+        }
+
+        return $this->client;
     }
 
     /**
@@ -129,7 +141,7 @@ class ComradeReader
 
         // send a request
         try {
-            $response = $this->client
+            $response = $this->getClient()
                 ->request(
                     $method,
                     $this->getPreparedRequestUrl($url),
