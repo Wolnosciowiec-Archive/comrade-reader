@@ -33,7 +33,7 @@ class ComradeReaderTest extends \PHPUnit_Framework_TestCase
     public function testGet()
     {
         /** @var SimpleTestEntity $color */
-        $color = $this->getReader()->get('/colors.php')->decode(SimpleTestEntity::class);
+        $color = $this->getReader()->get('/colors.php')->decodeIntoObject(SimpleTestEntity::class);
 
         $this->assertSame('red', $color->getColorName());
         $this->assertSame(1, $color->getId());
@@ -63,6 +63,6 @@ class ComradeReaderTest extends \PHPUnit_Framework_TestCase
     public function testNotFound()
     {
         $this->getReader()->request('GET', '/this-should-not-be-found')
-            ->decode(SimpleTestEntity::class);
+            ->decodeIntoObject(SimpleTestEntity::class);
     }
 }

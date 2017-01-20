@@ -5,6 +5,7 @@ namespace ComradeReader\Test\Service;
 use ComradeReader\Model\Entity\PaginatedResults;
 use ComradeReader\Service\ComradeDeserializer;
 use ComradeReader\Test\Helpers\SimpleTestEntity;
+use GuzzleHttp\Psr7\Response;
 use Symfony\Component\Serializer\Encoder\JsonDecode;
 use Symfony\Component\Serializer\Normalizer\PropertyNormalizer;
 use Symfony\Component\Serializer\Serializer;
@@ -21,7 +22,7 @@ class ComradeDeserializerTest extends \PHPUnit_Framework_TestCase
      */
     private function constructComrade($response)
     {
-        return new ComradeDeserializer(json_encode($response), new Serializer([
+        return new ComradeDeserializer(new Response(200, [], json_encode($response)), new Serializer([
             new PropertyNormalizer()
         ], [
             new JsonDecode()
@@ -34,14 +35,14 @@ class ComradeDeserializerTest extends \PHPUnit_Framework_TestCase
      */
     public function testInvalidResponse()
     {
-        $comrade = $this->constructComrade(false);
-        $comrade->getResponse();
+        $comrade = $this->constructComrade(null);
+        $comrade->getDecodedResponse();
     }
 
     /**
-     * @see ComradeDeserializer::decode()
+     * @see ComradeDeserializer::decodeIntoObject()
      */
-    public function testDecode()
+    public function testDecodeIntoObject()
     {
         $comrade = $this->constructComrade([
             'success' => true,
@@ -52,7 +53,7 @@ class ComradeDeserializerTest extends \PHPUnit_Framework_TestCase
         ]);
 
         /** @var SimpleTestEntity $decoded */
-        $decoded = $comrade->decode(SimpleTestEntity::class);
+        $decoded = $comrade->decodeIntoObject(SimpleTestEntity::class);
 
         $this->assertSame(1, $decoded->getId());
         $this->assertSame('red', $decoded->getColorName());
@@ -61,7 +62,7 @@ class ComradeDeserializerTest extends \PHPUnit_Framework_TestCase
     /**
      * @see ComradeDeserializer::decodeMultiple()
      */
-    public function testDecodeMultiple()
+    public function testDecodeIntoMultipleObjects()
     {
         $comrade = $this->constructComrade([
             'success' => true,
@@ -78,7 +79,7 @@ class ComradeDeserializerTest extends \PHPUnit_Framework_TestCase
         ]);
 
         /** @var SimpleTestEntity[] $decoded */
-        $decoded = $comrade->decodeMultiple(SimpleTestEntity::class);
+        $decoded = $comrade->decodeIntoMultipleObjects(SimpleTestEntity::class);
 
         $this->assertCount(2, $decoded);
     }
@@ -141,7 +142,7 @@ class ComradeDeserializerTest extends \PHPUnit_Framework_TestCase
         ]);
 
         /** @var PaginatedResults $results */
-        $results =  $comrade->decodeMultiple(SimpleTestEntity::class);
+        $results =  $comrade->decodeIntoMultipleObjects(SimpleTestEntity::class);
 
         $this->assertInstanceOf(
             PaginatedResults::class,

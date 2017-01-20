@@ -4,7 +4,7 @@ namespace ComradeReader\Service;
 
 use ComradeReader\Exception\Deserializer\DeserializerException;
 use ComradeReader\Model\Entity\PaginatedResults;
-use Symfony\Component\Serializer\Serializer;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * Deserializer
@@ -16,17 +16,17 @@ use Symfony\Component\Serializer\Serializer;
  */
 class ComradeDeserializer
 {
-    /** @var string $response */
+    /** @var ResponseInterface $response */
     private $response;
 
-    /** @var Serializer $serializer */
+    /** @var Symfony\Component\Serializer\SerializerInterface|\JMS\Serializer\SerializerInterface $serializer */
     protected $serializer;
 
     /**
-     * @param string     $response
-     * @param Serializer $serializer
+     * @param ResponseInterface $response
+     * @param object            $serializer
      */
-    public function __construct($response, Serializer $serializer)
+    public function __construct(ResponseInterface $response, $serializer)
     {
         $this->response   = $response;
         $this->serializer = $serializer;
@@ -37,14 +37,14 @@ class ComradeDeserializer
      */
     public function getPlainResponse()
     {
-        return $this->response;
+        return $this->response->getBody()->getContents();
     }
 
     /**
      * @throws DeserializerException
-     * @return array
+     * @return array|mixed
      */
-    public function getResponse()
+    public function getDecodedResponse()
     {
         $response = json_decode($this->getPlainResponse(), true);
 
@@ -59,11 +59,19 @@ class ComradeDeserializer
     }
 
     /**
-     * @return array
+     * @return ResponseInterface
+     */
+    public function getResponse(): ResponseInterface
+    {
+        return $this->response;
+    }
+
+    /**
+     * @return array|mixed
      */
     public function getData()
     {
-        $decoded = $this->getResponse();
+        $decoded = $this->getDecodedResponse();
 
         if (isset($decoded['success'])
             && $decoded['success']
@@ -80,7 +88,7 @@ class ComradeDeserializer
      * @param string $targetEntity
      * @return object
      */
-    public function decode($targetEntity)
+    public function decodeIntoObject($targetEntity)
     {
         $response = $this->_convertNaming(
             $this->getData()
@@ -94,7 +102,7 @@ class ComradeDeserializer
      * @param string $targetEntity
      * @return object[]|PaginatedResults
      */
-    public function decodeMultiple($targetEntity)
+    public function decodeIntoMultipleObjects($targetEntity)
     {
         $responseDecoded = $this->getData();
 
